@@ -10,14 +10,14 @@ import processing.video.*;
 
 Capture cam;
 
-//PImage[] anim = new PImage[20];
+PImage[] diff = new PImage[2];
 ArrayList anim = new ArrayList();
 
 int ind = 0;
 
 void setup() {
   //size(1280, 720, P2D);
-  size(1280, 480);//, P2D);
+  size(1280, 720);//, P2D);
 
   String[] cameras = Capture.list();
   
@@ -33,8 +33,8 @@ void setup() {
     // The camera can be initialized directly using an element
     // from the array returned by list():
     //cam = new Capture(this, cameras[0]);
-    cam = new Capture(this, "name=/dev/video1,size=640x480,fps=10");
-    //"name=/dev/video0,size=640x480,fps=10");
+    //cam = new Capture(this, "name=/dev/video1,size=640x480,fps=10");
+    cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
     cam.start();     
   }     
 
@@ -44,15 +44,18 @@ void setup() {
   //}
 }
 
+int highest_saved_ind = 0;
+
 void saveFrames() {
   Date dt = new Date();
   long ts = dt.getTime();
-
-  for (int i = 0; i < anim.size(); i++) {
+  int i = 0;
+  for (i = highest_saved_ind; i < anim.size(); i++) {
     String name = "data/cur-" + ts + "_" + (10000+i) + ".png";
     ((PImage)anim.get(i)).save(name);
   }
-  println("saved " + anim.size() + " frames");
+  println("saved " + anim.size() + " - " + highest_saved_ind + " frames");
+  highest_saved_ind = i;
 }
 
 int start_ind = 0;
@@ -122,15 +125,31 @@ void draw() {
 
   //if (anim[ind2] != null) {
   if ((count % speed == 0) && (anim.size() > 0)) {
-    ind2 = ind2 % anim.size();
-    if (ind2 < start_ind) { ind2 = start_ind; }
-    image((PImage)anim.get(ind2), 640,0,640,480);
+    
+    PImage cur_frame;
+    color text_col;
+    String text;
+    //if (false) {
+    if (ind2 == anim.size() ) {
+      // preview the current frame
+      cur_frame = cam;  
+      text_col = color(0,255,0);
+      text = "preview";
+    } else {
+      ind2 = ind2 % anim.size();
+      if (ind2 < start_ind) { ind2 = start_ind; }
+      text = str(ind2);
+      cur_frame = (PImage)anim.get(ind2);
+      text_col = color(255);
+    }
+    
+    image(cur_frame, 640, 0, 640, 480);
     
     textSize(20);
     fill(0);
-    text(ind2, 640, 30); 
-    fill(255);
-    text(ind2, 642, 31); 
+    text(text, 640, 30); 
+    fill(text_col);
+    text(text, 642, 31); 
     ind2++;
    
     noStroke();
@@ -141,6 +160,7 @@ void draw() {
     fill(128);
     rect(640, 476, 640*(start_ind)/anim.size(), 3); 
   }
+  text(anim.size(), 1200, 31); 
   
   count++;
 }
