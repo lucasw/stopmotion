@@ -59,7 +59,7 @@ void saveFrames() {
 }
 
 int start_ind = 0;
-int ind2=0;
+int ind2 = 0;
 boolean cap = false;
 int speed = 5;
 
@@ -71,18 +71,21 @@ void keyPressed() {
   }
 
   if (key == 'h') {
-    speed --;
+    speed--;
     if (speed < 1) { speed = 1; }
   }
+  
   if (key == 'l') {
     speed++;
     if (speed < 1) { speed = 1; }
   }
+  
   if (key == 'j') {
     start_ind--;
     if (start_ind < 0) { start_ind = 0; }
     println("start ind " + start_ind + " " + anim.size());
   }
+
   if (key == 'k') {
     start_ind++;
     if (start_ind > anim.size()-3) { start_ind = anim.size()-3; }
@@ -104,17 +107,20 @@ void keyPressed() {
 int count = 0;
 
 void draw() {
+  boolean cap_new_frame = false;
+
   if (cam.available() == true) {
     //println("test");
     cam.read();
+    cap_new_frame = true;
   
     image(cam, 0, 0, 640, 480);
     // The following does the same, and is faster when just drawing the image
     // without any additional resizing, transformations, or tint.
     //set(0, 0, cam);
     if (cap) {
-      PImage tmp = createImage(640,480,RGB);
-      tmp.copy(cam, 0, 0, 640,480, 0, 0, 640,480);
+      PImage tmp = createImage(cam.width, cam.height, RGB);
+      tmp.copy(cam, 0, 0, tmp.width, tmp.height, 0, 0, 640, 480);
       anim.add(tmp);
       //anim[ind].copy(cam, 0, 0, 640,480, 0, 0, 640,480);
       //ind++;
@@ -161,6 +167,65 @@ void draw() {
     rect(640, 476, 640*(start_ind)/anim.size(), 3); 
   }
   text(anim.size(), 1200, 31); 
+ 
+  // onion skin
+  if ((cap_new_frame) && (anim.size() > 0)) {
+    PImage preview = cam;
+    PImage last = (PImage)anim.get(anim.size() - 1);
+    PImage diff = createImage(cam.width, cam.height, RGB);
+
+    preview.loadPixels();
+    last.loadPixels();
+    diff.loadPixels();
+    for (int i = 0; i < cam.pixels.length; i++) {
+      color c1 = preview.pixels[i];
+      color c2 = last.pixels[i];
+      float f1 = 0.5;
+      float f2 = 0.5;
+      float dr = (red(c1)*f1 + red(c2)*f2);
+      float dg = (green(c1)*f1 + green(c2)*f2);
+      float db = (blue(c1)*f1 + blue(c2)*f2);
+     
+      diff.pixels[i] = color(dr, dg, db);
+    }
+    diff.updatePixels();
+    image(diff, 640+320, 480, 320, 240);
+  }
   
+  // image diff
+  if ((cap_new_frame) && (anim.size() > 0)) {
+    PImage preview = cam;
+    PImage last = (PImage)anim.get(anim.size() - 1);
+    PImage diff = createImage(cam.width, cam.height, RGB);
+
+    preview.loadPixels();
+    last.loadPixels();
+    diff.loadPixels();
+    // TBD use blend() instead
+    for (int i = 0; i < cam.pixels.length; i++) {
+      color c1 = preview.pixels[i];
+      color c2 = last.pixels[i];
+      float dr = (red(c1) - red(c2));
+      float dg = (green(c1) - green(c2));
+      float db = (blue(c1) - blue(c2));
+      // this logic is presuming light/dark differences
+      // means one image or another is preferred
+      if (dr + dg + db > 40) {
+        dr = red(c2); 
+        dg = green(c2); 
+        db = blue(c2); 
+      }
+      if (dr + dg + db < -40) {
+        dr = red(c1); 
+        dg = green(c1); 
+        db = blue(c1); 
+      }
+      diff.pixels[i] = color(dr, dg, db);
+    }
+    diff.updatePixels();
+    image(diff, 640, 480, 320, 240);
+  }
+
+
   count++;
 }
