@@ -120,7 +120,7 @@ void draw() {
     //set(0, 0, cam);
     if (cap) {
       PImage tmp = createImage(cam.width, cam.height, RGB);
-      tmp.copy(cam, 0, 0, tmp.width, tmp.height, 0, 0, 640, 480);
+      tmp.copy(cam, 0, 0, cam.width, cam.height, 0, 0, tmp.width, tmp.height);
       anim.add(tmp);
       //anim[ind].copy(cam, 0, 0, 640,480, 0, 0, 640,480);
       //ind++;
@@ -174,6 +174,7 @@ void draw() {
     PImage last = (PImage)anim.get(anim.size() - 1);
     PImage diff = createImage(cam.width, cam.height, RGB);
 
+    // TBD could use blend OVERLAY instead, almost the same
     preview.loadPixels();
     last.loadPixels();
     diff.loadPixels();
@@ -197,7 +198,8 @@ void draw() {
     PImage preview = cam;
     PImage last = (PImage)anim.get(anim.size() - 1);
     PImage diff = createImage(cam.width, cam.height, RGB);
-
+    
+    if (true) {
     preview.loadPixels();
     last.loadPixels();
     diff.loadPixels();
@@ -210,6 +212,7 @@ void draw() {
       float db = (blue(c1) - blue(c2));
       // this logic is presuming light/dark differences
       // means one image or another is preferred
+      
       if (dr + dg + db > 40) {
         dr = red(c2); 
         dg = green(c2); 
@@ -223,6 +226,11 @@ void draw() {
       diff.pixels[i] = color(dr, dg, db);
     }
     diff.updatePixels();
+    } else {
+      //PImage tmp = createImage(cam.width, cam.height, RGB);
+      diff.copy(last, 0, 0, last.width, last.height, 0, 0, diff.width, diff.height);
+      diff.blend(preview, 0, 0, last.width, last.height, 0, 0, diff.width, diff.height, DIFFERENCE);
+    }
     image(diff, 640, 480, 320, 240);
   }
 
