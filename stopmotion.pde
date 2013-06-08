@@ -33,8 +33,8 @@ void setup() {
     // The camera can be initialized directly using an element
     // from the array returned by list():
     //cam = new Capture(this, cameras[0]);
-    //cam = new Capture(this, "name=/dev/video1,size=640x480,fps=10");
-    cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
+    cam = new Capture(this, "name=/dev/video1,size=640x480,fps=10");
+    //cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
     cam.start();     
   }     
 
@@ -160,7 +160,7 @@ void draw() {
    
     noStroke();
     fill(0);
-    rect(640, 475, 360, 5); 
+    rect(640, 475, 640, 5); 
     fill(255);
     rect(640, 476, 640*(ind2+1)/anim.size(), 3); 
     fill(128);
