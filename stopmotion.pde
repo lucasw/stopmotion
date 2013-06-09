@@ -10,14 +10,13 @@ import processing.video.*;
 
 Capture cam;
 
-PImage[] diff = new PImage[2];
 ArrayList anim = new ArrayList();
 
 int ind = 0;
 
 void setup() {
   //size(1280, 720, P2D);
-  size(1280, 720);//, P2D);
+  size(1280, 860);
 
   String[] cameras = Capture.list();
   
@@ -33,15 +32,12 @@ void setup() {
     // The camera can be initialized directly using an element
     // from the array returned by list():
     //cam = new Capture(this, cameras[0]);
-    cam = new Capture(this, "name=/dev/video1,size=640x480,fps=10");
-    //cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
+    //cam = new Capture(this, "name=/dev/video1,size=640x480,fps=10");
+    cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
     cam.start();     
   }     
 
   frameRate(30);
-  //for (int i =0; i < anim.length; i++) {
-  //  anim[i] = createImage(640,480,RGB);
-  //}
 }
 
 int highest_saved_ind = 0;
@@ -106,15 +102,26 @@ void keyPressed() {
 
 int count = 0;
 
+float colorDist(color c1, color c2) {
+  float dr = (red(c1) - red(c2));
+  float dg = (green(c1) - green(c2));
+  float db = (blue(c1) - blue(c2));
+
+  return (dr + dg + db);
+}
+     
 void draw() {
   boolean cap_new_frame = false;
+
+  int cap_w = 640;
+  int cap_h = 480;
 
   if (cam.available() == true) {
     //println("test");
     cam.read();
     cap_new_frame = true;
   
-    image(cam, 0, 0, 640, 480);
+    image(cam, 0, 0, cap_w, cap_h);
     // The following does the same, and is faster when just drawing the image
     // without any additional resizing, transformations, or tint.
     //set(0, 0, cam);
@@ -128,6 +135,9 @@ void draw() {
       cap = false;
     }
   }
+
+  final int h = height - cap_h;
+  final int w = h * cap_w / cap_h;
 
   //if (anim[ind2] != null) {
   if ((count % speed == 0) && (anim.size() > 0)) {
@@ -149,48 +159,62 @@ void draw() {
       text_col = color(255);
     }
     
-    image(cur_frame, 640, 0, 640, 480);
+    image(cur_frame, cap_w, 0, cap_w, cap_h);
     
     textSize(20);
     fill(0);
-    text(text, 640, 30); 
+    text(text, cap_w, 30); 
     fill(text_col);
-    text(text, 642, 31); 
+    text(text, cap_w + 2, 31); 
     ind2++;
    
     noStroke();
     fill(0);
-    rect(640, 475, 640, 5); 
+    rect(cap_w, 475, cap_w, 5); 
     fill(255);
-    rect(640, 476, 640*(ind2+1)/anim.size(), 3); 
+    rect(cap_w, 476, cap_w * (ind2+1)/anim.size(), 3); 
     fill(128);
-    rect(640, 476, 640*(start_ind)/anim.size(), 3); 
+    rect(cap_w, 476, cap_w * (start_ind)/anim.size(), 3); 
   }
   text(anim.size(), 1200, 31); 
  
   // onion skin
-  if ((cap_new_frame) && (anim.size() > 0)) {
+  if ((cap_new_frame) && (anim.size() > 1)) {
     PImage preview = cam;
     PImage last = (PImage)anim.get(anim.size() - 1);
+    PImage last2 = (PImage)anim.get(anim.size() - 2);
     PImage diff = createImage(cam.width, cam.height, RGB);
 
     // TBD could use blend OVERLAY instead, almost the same
     preview.loadPixels();
     last.loadPixels();
+    last2.loadPixels();
     diff.loadPixels();
     for (int i = 0; i < cam.pixels.length; i++) {
       color c1 = preview.pixels[i];
       color c2 = last.pixels[i];
-      float f1 = 0.5;
-      float f2 = 0.5;
-      float dr = (red(c1)*f1 + red(c2)*f2);
-      float dg = (green(c1)*f1 + green(c2)*f2);
-      float db = (blue(c1)*f1 + blue(c2)*f2);
+      color c3 = last2.pixels[i];
+      float f1 = 0.37;
+      float f2 = 0.33;
+      float f3 = 0.3;
+      float color_dist = colorDist(c1, c2);
+      
+      // try out highlighting difference somewhat,
+      // not satisfied with it though
+      /*if (abs(color_dist) > 20) {
+        f1 = 0.8;
+        f2 = 0.15;
+        f3 = 0.05;
+      }*/
+
+      float dr = red(c1)*f1   + red(c2)*f2   + red(c3)*f3;
+      float dg = green(c1)*f1 + green(c2)*f2 + green(c3)*f3;
+      float db = blue(c1)*f1  + blue(c2)*f2  + blue(c3)*f3;
      
       diff.pixels[i] = color(dr, dg, db);
     }
     diff.updatePixels();
-    image(diff, 640+320, 480, 320, 240);
+    image(diff, width - w*2, cap_h, w, h);
   }
   
   // image diff
@@ -207,23 +231,26 @@ void draw() {
     for (int i = 0; i < cam.pixels.length; i++) {
       color c1 = preview.pixels[i];
       color c2 = last.pixels[i];
+      //float color_dist = colorDist(c1, c2);
       float dr = (red(c1) - red(c2));
       float dg = (green(c1) - green(c2));
       float db = (blue(c1) - blue(c2));
       // this logic is presuming light/dark differences
       // means one image or another is preferred
-      
+      // if there is a light background (like a lit green screen)
+      // then this logic works well
       if (dr + dg + db > 40) {
-        dr = red(c2); 
-        dg = green(c2); 
-        db = blue(c2); 
+        dr = red(c2) * 1.1; 
+        dg = green(c2) * 0.7; 
+        db = blue(c2) * 0.7; 
       }
       if (dr + dg + db < -40) {
-        dr = red(c1); 
-        dg = green(c1); 
-        db = blue(c1); 
+        dr = red(c1) * 0.8; 
+        dg = green(c1) * 1.1; 
+        db = blue(c1) * 0.8; 
       }
-      diff.pixels[i] = color(dr, dg, db);
+      final float fr = 0.6;
+      diff.pixels[i] = color(dr * fr, dg * fr, db * fr);
     }
     diff.updatePixels();
     } else {
@@ -231,7 +258,7 @@ void draw() {
       diff.copy(last, 0, 0, last.width, last.height, 0, 0, diff.width, diff.height);
       diff.blend(preview, 0, 0, last.width, last.height, 0, 0, diff.width, diff.height, DIFFERENCE);
     }
-    image(diff, 640, 480, 320, 240);
+    image(diff, width - w, cap_h, w, h);
   }
 
 
