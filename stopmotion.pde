@@ -32,7 +32,9 @@ void setup() {
     // The camera can be initialized directly using an element
     // from the array returned by list():
     //cam = new Capture(this, cameras[0]);
-    cam = new Capture(this, "name=/dev/video1,size=640x480,fps=10");
+    //cam = new Capture(this, "name=/dev/video1,size=1920x1080,fps=5");
+    cam = new Capture(this, "name=/dev/video1,size=2592x1944,fps=2");
+    //cam = new Capture(this, "name=/dev/video1,size=640x480,fps=10");
     //cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
     cam.start();     
   }     
@@ -94,7 +96,7 @@ void keyPressed() {
   }
 
   if (key == 'p') {
-    saveFrames();
+    //saveFrames();
    
   }
 
@@ -129,6 +131,7 @@ void draw() {
       PImage tmp = createImage(cam.width, cam.height, RGB);
       tmp.copy(cam, 0, 0, cam.width, cam.height, 0, 0, tmp.width, tmp.height);
       anim.add(tmp);
+      saveFrames();
       //anim[ind].copy(cam, 0, 0, 640,480, 0, 0, 640,480);
       //ind++;
       //ind = ind % anim.length;
