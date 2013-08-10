@@ -33,7 +33,8 @@ void setup() {
     // from the array returned by list():
     //cam = new Capture(this, cameras[0]);
     //cam = new Capture(this, "name=/dev/video1,size=1920x1080,fps=5");
-    cam = new Capture(this, "name=/dev/video1,size=2592x1944,fps=2");
+    cam = new Capture(this, "name=/dev/video1,size=1504x832,fps=5");
+    //cam = new Capture(this, "name=/dev/video1,size=2592x1944,fps=2");
     //cam = new Capture(this, "name=/dev/video1,size=640x480,fps=10");
     //cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
     cam.start();     
@@ -49,7 +50,8 @@ void saveFrames() {
   long ts = dt.getTime();
   int i = 0;
   for (i = highest_saved_ind; i < anim.size(); i++) {
-    String name = "data/cur-" + ts + "_" + (10000+i) + ".png";
+    String name = "data/cur-" + ts + "_" + (10000+i) + ".jpg";
+    print(name + "\n");
     ((PImage)anim.get(i)).save(name);
   }
   println("saved " + anim.size() + " - " + highest_saved_ind + " frames");
@@ -66,6 +68,7 @@ void keyPressed() {
   if (key == 'x') {
     saveFrames();
     anim.clear();
+    highest_saved_ind = 0;
   }
 
   if (key == 'h') {
@@ -116,7 +119,7 @@ void draw() {
   boolean cap_new_frame = false;
 
   int cap_w = 640;
-  int cap_h = 480;
+  int cap_h = 360;
 
   if (cam.available() == true) {
     //println("test");
