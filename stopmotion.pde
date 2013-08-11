@@ -12,11 +12,18 @@ Capture cam;
 
 ArrayList anim = new ArrayList();
 
+int save_count = 0;
 int ind = 0;
+
+Date dt = new Date();
+long ts = dt.getTime();
+
+int cap_w = 640;
+int cap_h = 360;
 
 void setup() {
   //size(1280, 720, P2D);
-  size(1280, 860);
+  size(cap_w * 2, cap_h * 2);
 
   String[] cameras = Capture.list();
   
@@ -33,10 +40,10 @@ void setup() {
     // from the array returned by list():
     //cam = new Capture(this, cameras[0]);
     //cam = new Capture(this, "name=/dev/video1,size=1920x1080,fps=5");
-    cam = new Capture(this, "name=/dev/video1,size=1504x832,fps=5");
+    //cam = new Capture(this, "name=/dev/video1,size=1504x832,fps=5");
     //cam = new Capture(this, "name=/dev/video1,size=2592x1944,fps=2");
     //cam = new Capture(this, "name=/dev/video1,size=640x480,fps=10");
-    //cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
+    cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
     cam.start();     
   }     
 
@@ -46,8 +53,6 @@ void setup() {
 int highest_saved_ind = 0;
 
 void saveFrames() {
-  Date dt = new Date();
-  long ts = dt.getTime();
   int i = 0;
   for (i = highest_saved_ind; i < anim.size(); i++) {
     String name = "data/cur-" + ts + "_" + (10000+i) + ".jpg";
@@ -66,7 +71,7 @@ int speed = 5;
 void keyPressed() {
 
   if (key == 'x') {
-    saveFrames();
+    //saveFrames();
     anim.clear();
     highest_saved_ind = 0;
   }
@@ -118,8 +123,10 @@ float colorDist(color c1, color c2) {
 void draw() {
   boolean cap_new_frame = false;
 
-  int cap_w = 640;
-  int cap_h = 360;
+  PImage cam_thumb = createImage(cap_w, cap_h, RGB);
+  cam_thumb.copy(cam, 
+      0, 0, cam.width, cam.height, 
+      0, 0, cam_thumb.width, cam_thumb.height);
 
   if (cam.available() == true) {
     //println("test");
@@ -131,10 +138,13 @@ void draw() {
     // without any additional resizing, transformations, or tint.
     //set(0, 0, cam);
     if (cap) {
-      PImage tmp = createImage(cam.width, cam.height, RGB);
-      tmp.copy(cam, 0, 0, cam.width, cam.height, 0, 0, tmp.width, tmp.height);
-      anim.add(tmp);
-      saveFrames();
+      anim.add(cam_thumb);
+      
+      String name = "data/cur_" + ts + "_" + (10000 + save_count++) + ".jpg";
+      print(name + "\n");
+      cam.save(name);
+
+      //saveFrames();
       //anim[ind].copy(cam, 0, 0, 640,480, 0, 0, 640,480);
       //ind++;
       //ind = ind % anim.length;
@@ -142,8 +152,8 @@ void draw() {
     }
   }
 
-  final int h = height - cap_h;
-  final int w = h * cap_w / cap_h;
+  final int h = cap_h; //height - cap_h;
+  final int w = cap_w; //h * cap_w / cap_h;
 
   //if (anim[ind2] != null) {
   if ((count % speed == 0) && (anim.size() > 0)) {
@@ -154,7 +164,7 @@ void draw() {
     //if (false) {
     if (ind2 == anim.size() ) {
       // preview the current frame
-      cur_frame = cam;  
+      cur_frame = cam_thumb;  
       text_col = color(0,255,0);
       text = "preview";
     } else {
@@ -175,28 +185,29 @@ void draw() {
     ind2++;
    
     noStroke();
+    // position in animation bar
     fill(0);
-    rect(cap_w, 475, cap_w, 5); 
+    rect(cap_w, cap_h-4, cap_w, 5); 
     fill(255);
-    rect(cap_w, 476, cap_w * (ind2+1)/anim.size(), 3); 
+    rect(cap_w, cap_h-3, cap_w * (ind2+1)/anim.size(), 3); 
     fill(128);
-    rect(cap_w, 476, cap_w * (start_ind)/anim.size(), 3); 
+    rect(cap_w, cap_h-3, cap_w * (start_ind)/anim.size(), 3); 
   }
   text(anim.size(), 1200, 31); 
  
   // onion skin
   if ((cap_new_frame) && (anim.size() > 1)) {
-    PImage preview = cam;
+    PImage preview = cam_thumb;
     PImage last = (PImage)anim.get(anim.size() - 1);
     PImage last2 = (PImage)anim.get(anim.size() - 2);
-    PImage diff = createImage(cam.width, cam.height, RGB);
+    PImage diff = createImage(cam_thumb.width, cam_thumb.height, RGB);
 
     // TBD could use blend OVERLAY instead, almost the same
     preview.loadPixels();
     last.loadPixels();
     last2.loadPixels();
     diff.loadPixels();
-    for (int i = 0; i < cam.pixels.length; i++) {
+    for (int i = 0; i < cam_thumb.pixels.length; i++) {
       color c1 = preview.pixels[i];
       color c2 = last.pixels[i];
       color c3 = last2.pixels[i];
@@ -222,19 +233,20 @@ void draw() {
     diff.updatePixels();
     image(diff, width - w*2, cap_h, w, h);
   }
-  
+ 
+  //////////////////////////////////////
   // image diff
   if ((cap_new_frame) && (anim.size() > 0)) {
-    PImage preview = cam;
+    PImage preview = cam_thumb;
     PImage last = (PImage)anim.get(anim.size() - 1);
-    PImage diff = createImage(cam.width, cam.height, RGB);
+    PImage diff = createImage(cam_thumb.width, cam_thumb.height, RGB);
     
     if (true) {
     preview.loadPixels();
     last.loadPixels();
     diff.loadPixels();
     // TBD use blend() instead
-    for (int i = 0; i < cam.pixels.length; i++) {
+    for (int i = 0; i < cam_thumb.pixels.length; i++) {
       color c1 = preview.pixels[i];
       color c2 = last.pixels[i];
       //float color_dist = colorDist(c1, c2);
@@ -260,13 +272,13 @@ void draw() {
     }
     diff.updatePixels();
     } else {
-      //PImage tmp = createImage(cam.width, cam.height, RGB);
+      //PImage tmp = createImage(cam_thumb.width, cam_thumb.height, RGB);
       diff.copy(last, 0, 0, last.width, last.height, 0, 0, diff.width, diff.height);
       diff.blend(preview, 0, 0, last.width, last.height, 0, 0, diff.width, diff.height, DIFFERENCE);
     }
-    image(diff, width - w, cap_h, w, h);
+    image(diff, cap_w, cap_h, w, h);
   }
-
+  // end diff
 
   count++;
 }
