@@ -264,14 +264,15 @@ void draw() {
 
     anim_color_dist /= cam_thumb.pixels.length;
     live_color_dist /= cam_thumb.pixels.length;
+
+    textSize(14);
+    fill(255,100,200);
+    rect(0, 0, 3, anim_color_dist); 
+    text("A " + str(anim_color_dist), 7, 20);
+    fill(105,250,200);
+    rect(3, 0, 3, live_color_dist); 
+    text("L " + str(live_color_dist), 7, 40);
   }
-  
-  fill(255,100,200);
-  rect(0, 0, 3, anim_color_dist); 
-  text(str(anim_color_dist), 7, 20);
-  fill(105,250,200);
-  rect(3, 0, 3, live_color_dist); 
-  text( str(live_color_dist), 7, 40);
 
   // if the live motion is small and the anim distance
   // is sufficiently large, then automatically capture
