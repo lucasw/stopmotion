@@ -12,6 +12,13 @@ Capture cam;
 
 ArrayList anim = new ArrayList();
 
+// only capture when difference between last
+// two camera frames is below a threshold and difference
+// with last saved frame is above another threshold
+boolean low_motion_mode = true;
+float live_dist_threshold = 7.5;
+float anim_dist_threshold = 12.0;
+
 int save_count = 0;
 int ind = 0;
 
@@ -20,6 +27,8 @@ long ts = dt.getTime();
 
 int cap_w = 640;
 int cap_h = 360;
+
+PImage cam_thumb_old;
 
 void setup() {
   //size(1280, 720, P2D);
@@ -46,6 +55,8 @@ void setup() {
     cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
     cam.start();     
   }     
+
+  cam_thumb_old = createImage(cap_w, cap_h, RGB);
 
   frameRate(30);
 }
@@ -113,41 +124,51 @@ void keyPressed() {
 int count = 0;
 
 float colorDist(color c1, color c2) {
-  float dr = (red(c1) - red(c2));
-  float dg = (green(c1) - green(c2));
-  float db = (blue(c1) - blue(c2));
+  float dr = abs(red(c1) - red(c2));
+  float dg = abs(green(c1) - green(c2));
+  float db = abs(blue(c1) - blue(c2));
 
   return (dr + dg + db);
 }
-     
+
+void animAdd(PImage cam_thumb) {
+  anim.add(cam_thumb);
+
+  String name = "data/cur_" + ts + "_" + (10000 + save_count++) + ".jpg";
+  print(name + "\n");
+  cam.save(name);
+
+  // indicate to user that frame has been captured, though it's possible
+  // this will be drawn over later
+  fill(0,255,0);
+  rect(cap_w - 20, cap_h - 20, 15, 15);
+  //saveFrames();
+  //anim[ind].copy(cam, 0, 0, 640,480, 0, 0, 640,480);
+  //ind++;
+  //ind = ind % anim.length;
+}
+
 void draw() {
   boolean cap_new_frame = false;
+  boolean has_added_to_anim = false;
 
   PImage cam_thumb = createImage(cap_w, cap_h, RGB);
   cam_thumb.copy(cam, 
       0, 0, cam.width, cam.height, 
       0, 0, cam_thumb.width, cam_thumb.height);
-
+  
   if (cam.available() == true) {
     //println("test");
     cam.read();
     cap_new_frame = true;
-  
+
     image(cam, 0, 0, cap_w, cap_h);
     // The following does the same, and is faster when just drawing the image
     // without any additional resizing, transformations, or tint.
     //set(0, 0, cam);
     if (cap) {
-      anim.add(cam_thumb);
-      
-      String name = "data/cur_" + ts + "_" + (10000 + save_count++) + ".jpg";
-      print(name + "\n");
-      cam.save(name);
-
-      //saveFrames();
-      //anim[ind].copy(cam, 0, 0, 640,480, 0, 0, 640,480);
-      //ind++;
-      //ind = ind % anim.length;
+      animAdd(cam_thumb);
+      has_added_to_anim = true;
       cap = false;
     }
   }
@@ -194,27 +215,35 @@ void draw() {
     rect(cap_w, cap_h-3, cap_w * (start_ind)/anim.size(), 3); 
   }
   text(anim.size(), 1200, 31); 
- 
+
+  // the amount of difference between the live frame and the last
+  // captured frame
+  float anim_color_dist = 0.0;
+  // the amount of difference between the live frame and the last
+  // live frame
+  float live_color_dist = 0.0;
   // onion skin
   if ((cap_new_frame) && (anim.size() > 1)) {
-    PImage preview = cam_thumb;
     PImage last = (PImage)anim.get(anim.size() - 1);
     PImage last2 = (PImage)anim.get(anim.size() - 2);
     PImage diff = createImage(cam_thumb.width, cam_thumb.height, RGB);
 
     // TBD could use blend OVERLAY instead, almost the same
-    preview.loadPixels();
+    cam_thumb.loadPixels();
+    cam_thumb_old.loadPixels();
     last.loadPixels();
     last2.loadPixels();
     diff.loadPixels();
     for (int i = 0; i < cam_thumb.pixels.length; i++) {
-      color c1 = preview.pixels[i];
+      color c1 = cam_thumb.pixels[i];
       color c2 = last.pixels[i];
       color c3 = last2.pixels[i];
+      color c4 = cam_thumb_old.pixels[i];
       float f1 = 0.37;
       float f2 = 0.33;
       float f3 = 0.3;
-      float color_dist = colorDist(c1, c2);
+      anim_color_dist += colorDist(c1, c2);
+      live_color_dist += colorDist(c1, c4);
       
       // try out highlighting difference somewhat,
       // not satisfied with it though
@@ -224,16 +253,39 @@ void draw() {
         f3 = 0.05;
       }*/
 
-      float dr = red(c1)*f1   + red(c2)*f2   + red(c3)*f3;
+      float dr = red(c1)  *f1 + red(c2)  *f2 + red(c3)  *f3;
       float dg = green(c1)*f1 + green(c2)*f2 + green(c3)*f3;
-      float db = blue(c1)*f1  + blue(c2)*f2  + blue(c3)*f3;
+      float db = blue(c1) *f1 + blue(c2) *f2 + blue(c3) *f3;
      
       diff.pixels[i] = color(dr, dg, db);
     }
     diff.updatePixels();
     image(diff, width - w*2, cap_h, w, h);
+
+    anim_color_dist /= cam_thumb.pixels.length;
+    live_color_dist /= cam_thumb.pixels.length;
   }
- 
+  
+  fill(255,100,200);
+  rect(0, 0, 3, anim_color_dist); 
+  text(str(anim_color_dist), 7, 20);
+  fill(105,250,200);
+  rect(3, 0, 3, live_color_dist); 
+  text( str(live_color_dist), 7, 40);
+
+  // if the live motion is small and the anim distance
+  // is sufficiently large, then automatically capture
+  if ((low_motion_mode) &&
+      (cap_new_frame) &&
+      (!has_added_to_anim) && 
+      (anim_color_dist > anim_dist_threshold) &&
+      (live_color_dist < live_dist_threshold)) {
+    // TBD or anim.size < 2 then capture automatically 
+    print(anim_color_dist + " " + live_color_dist);
+    animAdd(cam_thumb);
+    has_added_to_anim = true;
+  }
+
   //////////////////////////////////////
   // image diff
   if ((cap_new_frame) && (anim.size() > 0)) {
@@ -279,6 +331,12 @@ void draw() {
     image(diff, cap_w, cap_h, w, h);
   }
   // end diff
+
+  // update old live image preview
+  cam_thumb_old.copy(cam_thumb, 
+      0, 0, cam_thumb.width, cam_thumb.height, 
+      0, 0, cam_thumb_old.width, cam_thumb_old.height);
+
 
   count++;
 }
