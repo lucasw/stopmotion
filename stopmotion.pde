@@ -16,8 +16,8 @@ ArrayList anim = new ArrayList();
 // two camera frames is below a threshold and difference
 // with last saved frame is above another threshold
 boolean low_motion_mode = true;
-float live_dist_threshold = 10.0;
-float anim_dist_threshold = 12.0;
+float live_dist_threshold = 12.0;
+float anim_dist_threshold = 20.0;
 
 int save_count = 0;
 int ind = 0;
@@ -40,9 +40,11 @@ void setup() {
     println("There are no cameras available for capture.");
     exit();
   } else {
+    if (false) {
     println("Available cameras:");
     for (int i = 0; i < cameras.length; i++) {
       println(cameras[i]);
+    }
     }
     
     // The camera can be initialized directly using an element
@@ -87,6 +89,20 @@ void keyPressed() {
     highest_saved_ind = 0;
   }
 
+  if (key == 'e') {
+    live_dist_threshold *= 0.95;
+  }
+  if (key == 'r') {
+    live_dist_threshold *= 1.04;
+  }
+
+  if (key == 'd') {
+    anim_dist_threshold *= 0.95;
+  }
+  if (key == 'f') {
+    anim_dist_threshold *= 1.04;
+  }
+
   if (key == 'h') {
     speed--;
     if (speed < 1) { speed = 1; }
@@ -111,7 +127,7 @@ void keyPressed() {
   }
 
   // save a frame manually
-  if (key == 'f') {
+  if (key == 'g') {
     cap = true;
   }
 
@@ -237,7 +253,7 @@ void draw() {
     PImage diff = createImage(cam_thumb.width, cam_thumb.height, RGB);
 
     //// draw last frame in smaller preview window
-    image(last, cap_w + cap_w/2, cap_h/2, cap_w/2, cap_h/2);
+    image(last, cap_w, cap_h/2, cap_w/2, cap_h/2);
 
     // TBD could use blend OVERLAY instead, almost the same
     cam_thumb.loadPixels();
@@ -277,13 +293,13 @@ void draw() {
     anim_color_dist /= cam_thumb.pixels.length;
     live_color_dist /= cam_thumb.pixels.length;
 
-    textSize(14);
+    textSize(20);
     fill(255,100,200);
     rect(0, 0, 3, anim_color_dist); 
-    text("A " + str(anim_color_dist), 7, 20);
-    fill(105,250,200);
+    text(str(anim_dist_threshold) + " A " + str(anim_color_dist), 7, 20);
+    fill(105,200,100);
     rect(3, 0, 3, live_color_dist); 
-    text("L " + str(live_color_dist), 7, 40);
+    text(str(live_dist_threshold) + " L " + str(live_color_dist), 7, 40);
   }
 
   // if the live motion is small and the anim distance
@@ -348,6 +364,7 @@ void draw() {
   // end diff
 
   if (cap_new_frame) {
+    //// draw the old and new captured frames to the screen
     image(cam_thumb,     cap_w + cap_w/2, 0,       cap_w/2, cap_h/2);
     image(cam_thumb_old, cap_w + cap_w/2, cap_h/2, cap_w/2, cap_h/2);
     
@@ -355,8 +372,13 @@ void draw() {
     cam_thumb_old.copy(cam_thumb, 
       0, 0, cam_thumb.width, cam_thumb.height, 
       0, 0, cam_thumb_old.width, cam_thumb_old.height);
-   
-    //// draw the old frame to the screen
+    
+    if (has_added_to_anim) {
+      noFill();
+      strokeWeight(15.0);
+      stroke(0,255,0);
+      rect(0, 0, width, height);
+    }
   }
 
   count++;
