@@ -16,7 +16,7 @@ ArrayList anim = new ArrayList();
 // two camera frames is below a threshold and difference
 // with last saved frame is above another threshold
 boolean low_motion_mode = true;
-float live_dist_threshold = 7.5;
+float live_dist_threshold = 10.0;
 float anim_dist_threshold = 12.0;
 
 int save_count = 0;
@@ -48,11 +48,11 @@ void setup() {
     // The camera can be initialized directly using an element
     // from the array returned by list():
     //cam = new Capture(this, cameras[0]);
-    //cam = new Capture(this, "name=/dev/video1,size=1920x1080,fps=5");
+    cam = new Capture(this, "name=/dev/video1,size=1920x1080,fps=5");
     //cam = new Capture(this, "name=/dev/video1,size=1504x832,fps=5");
     //cam = new Capture(this, "name=/dev/video1,size=2592x1944,fps=2");
     //cam = new Capture(this, "name=/dev/video1,size=640x480,fps=10");
-    cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
+    //cam = new Capture(this, "name=/dev/video0,size=640x480,fps=10");
     cam.start();     
   }     
 
@@ -110,6 +110,7 @@ void keyPressed() {
     println("start ind " + start_ind + " " + anim.size());
   }
 
+  // save a frame manually
   if (key == 'f') {
     cap = true;
   }
@@ -148,21 +149,27 @@ void animAdd(PImage cam_thumb) {
   //ind = ind % anim.length;
 }
 
+PImage cam_thumb;
+
 void draw() {
   boolean cap_new_frame = false;
   boolean has_added_to_anim = false;
-
-  PImage cam_thumb = createImage(cap_w, cap_h, RGB);
-  cam_thumb.copy(cam, 
-      0, 0, cam.width, cam.height, 
-      0, 0, cam_thumb.width, cam_thumb.height);
-  
+ 
   if (cam.available() == true) {
     //println("test");
     cam.read();
     cap_new_frame = true;
 
+    //// draw the new image onto the screen
     image(cam, 0, 0, cap_w, cap_h);
+
+    // copy the image from the camera
+    cam_thumb = createImage(cap_w, cap_h, RGB);
+    cam_thumb.copy(cam, 
+      0, 0, cam.width, cam.height, 
+      0, 0, cam_thumb.width, cam_thumb.height);
+
+
     // The following does the same, and is faster when just drawing the image
     // without any additional resizing, transformations, or tint.
     //set(0, 0, cam);
@@ -184,7 +191,7 @@ void draw() {
     String text;
     //if (false) {
     if (ind2 == anim.size() ) {
-      // preview the current frame
+      // preview the current frame, TBD make optional
       cur_frame = cam_thumb;  
       text_col = color(0,255,0);
       text = "preview";
@@ -196,7 +203,8 @@ void draw() {
       text_col = color(255);
     }
     
-    image(cur_frame, cap_w, 0, cap_w, cap_h);
+    //// draw the animation preview to the screen
+    image(cur_frame, cap_w, 0, cap_w/2, cap_h/2);
     
     textSize(20);
     fill(0);
@@ -227,6 +235,9 @@ void draw() {
     PImage last = (PImage)anim.get(anim.size() - 1);
     PImage last2 = (PImage)anim.get(anim.size() - 2);
     PImage diff = createImage(cam_thumb.width, cam_thumb.height, RGB);
+
+    //// draw last frame in smaller preview window
+    image(last, cap_w + cap_w/2, cap_h/2, cap_w/2, cap_h/2);
 
     // TBD could use blend OVERLAY instead, almost the same
     cam_thumb.loadPixels();
@@ -260,6 +271,7 @@ void draw() {
       diff.pixels[i] = color(dr, dg, db);
     }
     diff.updatePixels();
+    //// draw the diff image
     image(diff, width - w*2, cap_h, w, h);
 
     anim_color_dist /= cam_thumb.pixels.length;
@@ -329,15 +341,23 @@ void draw() {
       diff.copy(last, 0, 0, last.width, last.height, 0, 0, diff.width, diff.height);
       diff.blend(preview, 0, 0, last.width, last.height, 0, 0, diff.width, diff.height, DIFFERENCE);
     }
+
+    //// draw the color diff
     image(diff, cap_w, cap_h, w, h);
   }
   // end diff
 
-  // update old live image preview
-  cam_thumb_old.copy(cam_thumb, 
+  if (cap_new_frame) {
+    image(cam_thumb,     cap_w + cap_w/2, 0,       cap_w/2, cap_h/2);
+    image(cam_thumb_old, cap_w + cap_w/2, cap_h/2, cap_w/2, cap_h/2);
+    
+    // update old live image preview
+    cam_thumb_old.copy(cam_thumb, 
       0, 0, cam_thumb.width, cam_thumb.height, 
       0, 0, cam_thumb_old.width, cam_thumb_old.height);
-
+   
+    //// draw the old frame to the screen
+  }
 
   count++;
 }
