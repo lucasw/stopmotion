@@ -103,11 +103,13 @@ void keyPressed() {
     anim_dist_threshold *= 1.04;
   }
 
+  // increase playback speed
   if (key == 'h') {
     speed--;
     if (speed < 1) { speed = 1; }
   }
   
+  // decrease playback speed
   if (key == 'l') {
     speed++;
     if (speed < 1) { speed = 1; }
