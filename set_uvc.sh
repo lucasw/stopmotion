@@ -1,5 +1,9 @@
 #!/bin/sh
 
+
+# use this uvc ctrl app instead:
+# v4lucp
+
 uvcdynctrl --device=/dev/video0 -c
 uvcdynctrl --device=/dev/video0 --set 'White Balance Temperature, Auto' Off
 

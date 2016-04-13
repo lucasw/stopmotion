@@ -15,7 +15,7 @@ ArrayList anim = new ArrayList();
 // only capture when difference between last
 // two camera frames is below a threshold and difference
 // with last saved frame is above another threshold
-boolean low_motion_mode = true;
+boolean low_motion_mode = false;
 float live_dist_threshold = 12.0;
 float anim_dist_threshold = 20.0;
 
@@ -25,8 +25,8 @@ int ind = 0;
 Date dt = new Date();
 long ts = dt.getTime();
 
-int cap_w = 640;
-int cap_h = 360;
+int cap_h = 440;
+int cap_w = int(cap_h * (1920.0/1080.0));
 
 PImage cam_thumb_old;
 
